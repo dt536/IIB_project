@@ -19,15 +19,15 @@ with rasterio.open(pre_path) as src_pre, rasterio.open(post_path) as src_post:
 
 print("Image size:", width, "x", height)
 
-# We'll use 4 bands from each: B,G,R,NIR -> 8 features total
+#8 features total
 num_bands_total = 8
 
 # ----------------- 2. Set up Incremental PCA -----------------
 n_components = 3
 ipca = IncrementalPCA(n_components=n_components)
 
-# Choose a block size that fits in RAM
-block_size = 512  # you can try 512 or 1024
+# A block size that fits in RAM
+block_size = 512  #512 or 1024
 
 # ----------------- 3. PASS 1: Fit PCA in chunks -----------------
 print("Pass 1: fitting IncrementalPCA on blocks...")
@@ -59,8 +59,7 @@ with rasterio.open(pre_path) as src_pre, rasterio.open(post_path) as src_post:
 print("PCA components learned.")
 
 # ----------------- 4. Prepare output rasters -----------------
-# We’ll output one PCA component image + one change mask
-# (you can also save all components if you want)
+# PCA component image + one change mask output
 
 pc_profile = profile.copy()
 pc_profile.update(dtype=rasterio.float32, count=1, nodata=None)
@@ -71,8 +70,8 @@ mask_profile.update(dtype=rasterio.uint8, count=1, nodata=0)
 pc_component_path = "pca_component.tif"
 change_mask_path = "change_mask.tif"
 
-# Choose which PCA component emphasises change (start with 2nd, index 1)
-pc_index = 1
+# Choose which PCA component emphasises change 
+pc_index = 1 #component 2
 
 # ----------------- 5. PASS 2: Transform blocks & write outputs -----------------
 print("Pass 2: applying PCA and writing outputs...")
@@ -81,13 +80,13 @@ with rasterio.open(pre_path) as src_pre, rasterio.open(post_path) as src_post, \
      rasterio.open(pc_component_path, "w", **pc_profile) as dst_pc, \
      rasterio.open(change_mask_path, "w", **mask_profile) as dst_mask:
 
-    # we need some global stats to compute z-scores; you can:
+    # compute z-scores:
     # (a) do a quick pass to estimate mean/std on a subset OR
     # (b) compute them from all pixels progressively.
-    # For simplicity here, we’ll store block means/stds and then normalise per-block
+    # Here store block means/stds and then normalise per-block
     # relative to the global mean/std approximated from first pass of transform.
 
-    # First, collect rough stats on the chosen component
+    # Collect rough stats on the chosen component
     comp_values = []
 
     for row in range(0, height, block_size):
@@ -118,7 +117,7 @@ with rasterio.open(pre_path) as src_pre, rasterio.open(post_path) as src_post, \
     print("Estimated global mean/std for component:",
           float(global_mean), float(global_std))
 
-    # Now second transform pass: write normalised component + change mask
+    # Second transform pass: write normalised component + change mask
     for row in range(0, height, block_size):
         for col in range(0, width, block_size):
             h = min(block_size, height - row)
